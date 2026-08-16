@@ -1,0 +1,7 @@
+# 入れ子にした独立リポジトリ (それぞれが自分の .git を持つ)
+kabu-vault/
+kabu-app/
+kabu-lab/
+
+# ラズパイ SSD への symlink
+data
