@@ -41,6 +41,7 @@ LLM Wiki パターンそのものの知見は個人 vault (`~/workspace/llm-wiki
 
 ## データとインフラ
 
+- DB のデータを引く前に `kabu-app/README.md` の「どれを引くか」を読む。テーブルとビューの選び方が書いてある。列の意味は DB の `COMMENT` にあるので `psql` の `\d+` で読む
 - 生データはラズパイの SSD にあり、Mac からは SMB (NetFS) で `/Volumes/data` にマウントする。`data` はそこへの symlink
 - マウントポイントを実ディレクトリにしない。SMB が外れたとき空ディレクトリとして残り、バッチが「未マウント」ではなく「0 件」を見てしまう。symlink なら壊れたリンクで即エラーになる
 - PostgreSQL はラズパイのローカル (SSD 直) で動く。SMB 公開しない。Mac からは TCP で接続する
