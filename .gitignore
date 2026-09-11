@@ -2,8 +2,5 @@
 kabu-app/
 kessannote/
 
-# 退役。LLM Wiki をやめたので使っていない。処遇が決まるまで除外だけ残す
-kabu-vault/
-
 # ラズパイ SSD への symlink
 data
