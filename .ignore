@@ -1,5 +1,4 @@
 # ripgrep / fd 用。.gitignore より優先される。
 # 入れ子リポジトリを横断検索の対象に戻す。data は除外したまま。
-!kabu-vault/
 !kabu-app/
-!kabu-lab/
+!kessannote/

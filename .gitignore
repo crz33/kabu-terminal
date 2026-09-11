@@ -1,7 +1,9 @@
 # 入れ子にした独立リポジトリ (それぞれが自分の .git を持つ)
-kabu-vault/
 kabu-app/
-kabu-lab/
+kessannote/
+
+# 退役。LLM Wiki をやめたので使っていない。処遇が決まるまで除外だけ残す
+kabu-vault/
 
 # ラズパイ SSD への symlink
 data
