@@ -38,3 +38,8 @@ EDINET API の仕様はバッチを直すときにしか読まないので `kabu
 - PostgreSQL はラズパイのローカル (SSD 直) で動く。SMB 公開しない。Mac からは TCP で接続する
 - ロールは 3 つ。`kabu_dev` (Mac からの開発、フル)、`kabu_app` (ラズパイのバッチ、localhost のみ、フル)、`kabu_ro` (分析・参照、SELECT のみ)
 - データのパスをコードに埋めない。Mac は `kabu-terminal/data`、ラズパイは `/mnt/usb/data` になるため `KABU_DATA_DIR` で受ける
+- **DB に入っているのは数値だけ。文章は原本にある。** 増益の理由、予想の前提、事業のリスク、セグメントの説明のように数字でない情報が要るときは、Web より先に `data/` の原本を読む
+  - 短信: `data/tdnet/<開示日>/<doc_id>.zip` の `XBRLData/Attachment/qualitative.htm`。経営成績の概況と今後の見通し。`tdnet_disclosures` の `disclosed_date` と `doc_id` で場所が決まる
+  - 有報: `data/edinet/<提出日>/<doc_id>.zip` の `XBRL/PublicDoc/0102010_honbun_*.htm`。経営方針、事業等のリスク、経営者による分析。`edinet_documents` の `submit_date` と `doc_id` で決まる。`0101010` が企業の概況、`0104010` が株式と大株主
+  - `unzip -p <zip> <中のパス> | textutil -convert txt -format html -stdin -stdout` で本文だけ読める
+  - SMB が外れていると `data/` は壊れたリンクになる。`ls data/` で確かめてから開く
