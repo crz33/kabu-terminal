@@ -26,6 +26,8 @@ kabu-terminal/              # public。スキルと CLAUDE.md
 
 EDINET API の仕様はバッチを直すときにしか読まないので `kabu-app`。企業の実態やバックテストの結果は判断するときに読むので `kessannote`。
 
+投資のアイデアを試す手順は `idea` スキルにある。アイデアごとの定義は `kessannote/methods/`、SQL は `kessannote/analysis/`、結果は `kessannote/reports/` に、同じ名前と版で置く。DB や表紙の癖のように次のアイデアでも踏むものはスキルの「つまずきどころ」に足す。
+
 レポートからコードの実装ファイルへリンクを張らない。リファクタで嘘になる。テーブル名とビュー名までにとどめる。
 
 ## データとインフラ
