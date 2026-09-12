@@ -156,6 +156,22 @@ FROM tdnet_statement_facts f JOIN tdnet_disclosures d ON d.doc_id=f.doc_id
 WHERE d.code='<コード>' AND d.disclosed_date='<開示日>' AND f.section='SG' ORDER BY f.ordinal;
 ```
 
+**数字を出したら、理由は短信の本文で確かめる。** 増減の理由、予想の前提、セグメントの
+説明は DB に無く、短信の添付の「経営成績等の概況」にある。Web を引く前にこれを読む。
+
+```bash
+ls data/ >/dev/null || echo "SMB が外れている"
+unzip -p data/tdnet/<開示日>/<doc_id>.zip XBRLData/Attachment/qualitative.htm \
+  | textutil -convert txt -format html -stdin -stdout | sed 's/^[[:space:]]*//' | grep -v '^$'
+```
+
+`<開示日>` と `<doc_id>` は手順 5 で引いた `tdnet_disclosures` の行から取る。事業の中身や
+リスクまで要るなら有報の `0102010_honbun_*.htm` (事業の状況)。場所は `CLAUDE.md` の
+「データとインフラ」にある。
+
+本文から引いた理由は、会社の説明として書く。「会社は〜と説明している」までにとどめ、
+それが本当かは数字で確かめる。会社の説明と数字が合わないときは、その食い違いを書く。
+
 **セグメント別の設備投資・減価償却費・資産は通期の短信にだけ入る。** 四半期には無い。
 `jpcrp_cor_IncreaseInPropertyPlantAndEquipmentAndIntangibleAssets` と
 `jpcrp_cor_DepreciationSegmentInformation`、`jppfs_cor_Assets` で引ける。
