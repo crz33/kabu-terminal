@@ -196,8 +196,10 @@ cd kessannote && git push origin main
 「償却は重くない」と言えるのは全社の話で、セグメント別に確かめるまでは断定できない。通期
 短信に入っているので確かめられる。
 
-**発行済株式数を DB に持っていない。** 時価総額も PER も出せない。上位株主の保有比率から
-逆算はできるが、比率が小数 2 桁なので精度が足りない。出さないほうがよい。
+**発行済株式数は `tdnet_summary_facts` にある。** 上位株主の比率から逆算しないこと。
+`concept = 'tse-ed-t_NumberOfIssuedAndOutstandingSharesAtTheEndOfFiscalYearIncludingTreasuryStock'`
+と `tse-ed-t_NumberOfTreasuryStockAtTheEndOfFiscalYear` を `scope = 'Current'` で引く。予想 EPS
+(`NetIncomePerShare` か `BasicEarningsPerShareIFRS`) も同じ表にあり、予想 PER が出せる。
 
 **営業利益は有報の経営指標に載らない。** 通期の推移を出すと、古い期が空く。欠損ではないので
 そう書き添える。損益計算書から取るため当期と前期の 2 期しか遡れない。
