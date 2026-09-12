@@ -72,7 +72,37 @@ ORDER BY f.concept;
 通期予想に対する進捗率と、前年同期比を並べる。**利益の進捗が売上より速いかを見る。**
 速ければ利幅が広がっている。
 
-### 4. 株主を見る
+### 4. 短信の本文で理由を読む
+
+**数字を出したら、書く前に理由を本文で確かめる。** 増減の理由、一時要因、予想の据え置き、
+セグメント区分の変更は DB に無く、短信の添付「経営成績等の概況」にある。直近の四半期と
+直近の本決算の 2 通を読む。
+
+```bash
+ls data/ >/dev/null || echo "SMB が外れている"
+unzip -p data/tdnet/<開示日>/<doc_id>.zip XBRLData/Attachment/qualitative.htm \
+  | textutil -convert txt -format html -stdin -stdout | sed 's/^[[:space:]]*//' | grep -v '^$'
+```
+
+`<開示日>` と `<doc_id>` は `tdnet_disclosures` の `disclosed_date` と `doc_id`。本文の
+「（１）経営成績の概況」「（３）業績予想に関する説明」だけ読めば足りる。本決算なら
+「（４）今後の見通し」も。
+
+拾うのはこの 4 つ。
+
+- 純利益と営業利益の伸びが食い違う理由。税効果、特別損益、事業構造改革費用
+- 会社予想の増減の理由。特損の剥落なのか営業の伸びなのか
+- セグメントの増減の理由。撤退、価格転嫁、駆け込み、在庫の積み増し
+- 報告セグメントの変更。前年同期が組み替えられていれば、通期推移と地続きでない
+
+NGK は本文を読まずに書いて、純利益 +64% を「利益ほど進捗が速い」と評価した。実際は組織
+再編の税効果で、会社予想の純利益増も特損の剥落だった。**数字だけで増益の質を判断しない。**
+
+本文から引いた理由は「会社は〜と説明している」までにとどめ、それが本当かは数字で確かめる。
+会社の説明と数字が合わないときは、その食い違いを書く。事業の中身やリスクまで要るなら
+有報の `0102010_honbun_*.htm` (事業の状況)。場所は `CLAUDE.md` の「データとインフラ」にある。
+
+### 5. 株主を見る
 
 ```sql
 SELECT rank, name, ratio, kind, is_owner FROM edinet_shareholders
@@ -83,7 +113,7 @@ WHERE doc_id = (SELECT doc_id FROM edinet_shareholders WHERE code='<コード>'
 上位 10 名の合計、信託口の比率、オーナー系の有無を見る。全部が機関なら持ち合いの色が
 残る会社、オーナーが上位にいれば別の読み方になる。
 
-### 5. 株価を並べる
+### 6. 株価を並べる
 
 ```sql
 SELECT date, close, volume FROM ticks WHERE code='<コード>'
@@ -92,9 +122,9 @@ SELECT extract(year from date)::int AS 年, min(close), max(close) FROM ticks
 WHERE code='<コード>' GROUP BY 1 ORDER BY 1;
 ```
 
-大きく動いていたら、その理由は手順 8 で掘る。初回は事実だけ並べて「未確定」に落としてよい。
+大きく動いていたら、その理由は手順 9 で掘る。初回は事実だけ並べて「未確定」に落としてよい。
 
-### 6. 書く
+### 7. 書く
 
 `kessannote/CLAUDE.md` の書き方に従う。frontmatter は `type: company`、`date` は作成日。
 `summary` には**結論**を書く。会社の紹介ではなく、何が分かったかを書く。
@@ -103,7 +133,7 @@ WHERE code='<コード>' GROUP BY 1 ORDER BY 1;
 
 **出し方の節には、どのテーブルから引いたかを書く。** 手順は書き写さない。
 
-### 7. 建てて commit する
+### 8. 建てて commit する
 
 ```bash
 cd kessannote && npx astro build && npx astro check
@@ -116,7 +146,7 @@ cd kessannote && npx astro build && npx astro check
 レポートを出したら終わりではない。ユーザが読んで質問してくる。**調べた結果は会話で答えて
 終わりにせず、必ずレポートに書き戻すこと。**
 
-### 8. 値動きの理由を聞かれたら
+### 9. 値動きの理由を聞かれたら
 
 **個別の材料を探す前に、まず固有かどうかを確かめる。** ここを飛ばすと、セクター全体の
 動きに個別の理由を当ててしまう。
@@ -140,9 +170,9 @@ WHERE s.code IN ('<対象>','<同業を数社>') ORDER BY 3;
 固有でないと分かったら、セクターに何があったかを Web で引く。記事は開いて日付と中身を
 確かめる。
 
-### 9. 業績の中身を聞かれたら
+### 10. 業績の中身を聞かれたら
 
-Web を引く前に DB を見る。**四半期の短信に損益計算書の内訳とセグメント情報が入っている。**
+Web を引く前に DB と短信の本文 (手順 4) を見る。**四半期の短信に損益計算書の内訳とセグメント情報が入っている。**
 
 ```sql
 -- 損益計算書の内訳。売上原価と販管費まで取れる
@@ -155,22 +185,6 @@ SELECT f.concept, f.member, f.period_start, round(f.value/1e8,1) AS 億円
 FROM tdnet_statement_facts f JOIN tdnet_disclosures d ON d.doc_id=f.doc_id
 WHERE d.code='<コード>' AND d.disclosed_date='<開示日>' AND f.section='SG' ORDER BY f.ordinal;
 ```
-
-**数字を出したら、理由は短信の本文で確かめる。** 増減の理由、予想の前提、セグメントの
-説明は DB に無く、短信の添付の「経営成績等の概況」にある。Web を引く前にこれを読む。
-
-```bash
-ls data/ >/dev/null || echo "SMB が外れている"
-unzip -p data/tdnet/<開示日>/<doc_id>.zip XBRLData/Attachment/qualitative.htm \
-  | textutil -convert txt -format html -stdin -stdout | sed 's/^[[:space:]]*//' | grep -v '^$'
-```
-
-`<開示日>` と `<doc_id>` は手順 5 で引いた `tdnet_disclosures` の行から取る。事業の中身や
-リスクまで要るなら有報の `0102010_honbun_*.htm` (事業の状況)。場所は `CLAUDE.md` の
-「データとインフラ」にある。
-
-本文から引いた理由は、会社の説明として書く。「会社は〜と説明している」までにとどめ、
-それが本当かは数字で確かめる。会社の説明と数字が合わないときは、その食い違いを書く。
 
 **セグメント別の設備投資・減価償却費・資産は通期の短信にだけ入る。** 四半期には無い。
 `jpcrp_cor_IncreaseInPropertyPlantAndEquipmentAndIntangibleAssets` と
@@ -185,7 +199,7 @@ FROM edinet_latest_facts f WHERE f.code='<コード>' AND f.section='CS' AND f.m
 ORDER BY f.period_end;
 ```
 
-### 10. 未確定を動かす
+### 11. 未確定を動かす
 
 解けたものは外し、掘って出てきた問いを足す。未確定は減らすものではなく入れ替わるもの。
 
@@ -193,7 +207,7 @@ ORDER BY f.period_end;
 
 `date` は同じ日の追記なら動かさない。`summary` は結論が変わったら直す。
 
-### 11. 指示が出たら push する
+### 12. 指示が出たら push する
 
 ```bash
 cd kessannote && git push origin main
