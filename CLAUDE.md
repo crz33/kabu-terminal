@@ -9,7 +9,7 @@
 ```text
 kabu-terminal/              # public。スキルと CLAUDE.md
 ├── .claude/skills/
-├── kabu-app/               # public。取得バッチ、DB スキーマ、XBRL パーサ。ラズパイが pull
+├── kabu-app/               # private。取得バッチ、DB スキーマ、XBRL パーサ。ラズパイが pull
 ├── kessannote/             # private。調べたことのレポート
 └── data -> /Volumes/data   # symlink。ラズパイの SSD (SMB, 読み取り専用)
 ```
