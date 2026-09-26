@@ -79,9 +79,8 @@ ORDER BY f.concept;
 直近の本決算の 2 通を読む。
 
 ```bash
-ls data/ >/dev/null || echo "SMB が外れている"
-unzip -p data/tdnet/<開示日>/<doc_id>.zip XBRLData/Attachment/qualitative.htm \
-  | textutil -convert txt -format html -stdin -stdout | sed 's/^[[:space:]]*//' | grep -v '^$'
+ls data/ >/dev/null || echo "data/ が見えない (SSD が外れている)"
+unzip -p data/tdnet/<開示日>/<doc_id>.zip XBRLData/Attachment/qualitative.htm | bin/html2txt
 ```
 
 `<開示日>` と `<doc_id>` は `tdnet_disclosures` の `disclosed_date` と `doc_id`。本文の

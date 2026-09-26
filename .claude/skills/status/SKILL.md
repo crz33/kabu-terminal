@@ -5,7 +5,7 @@ description: ラズパイで動いているバッチの直近の実行結果を�
 
 # Status
 
-ラズパイ (`raspi`) の夜間バッチと週次バッチについて、直近の実行結果を調べて報告する。
+ラズパイ (dog) の夜間バッチと週次バッチについて、直近の実行結果を調べて報告する。
 
 このスキルは **読み取り専用** である。ログ・DB・ファイルのいずれにも書き込まない。バッチの再実行もしない。詰まりを見つけても、対処はユーザに提案するだけにとどめる。
 
@@ -15,10 +15,10 @@ description: ラズパイで動いているバッチの直近の実行結果を�
 
 | 対象 | 値 |
 | --- | --- |
-| ssh 先 | `raspi` (`~/.ssh/config` に定義済み) |
+| 実行ユーザー | `kabu` (このセッションと同じ。ラズパイの上で直接見る) |
 | nightly のログタグ | `kabu` |
 | weekly のログタグ | `kabu-ticks` |
-| DB 接続 | Mac の `kabu-app/.env` にある `DATABASE_URL` (`kabu_dev`) |
+| DB 接続 | `kabu-app/.env` の `DATABASE_URL` (`kabu_dev`) |
 
 スケジュールは `crontab -l` で読む。この文書に書き写さない。cron を直せば嘘になるため。
 
@@ -27,7 +27,7 @@ description: ラズパイで動いているバッチの直近の実行結果を�
 ### 1. cron の定義を取る
 
 ```bash
-ssh raspi 'crontab -l; date'
+crontab -l; date
 ```
 
 ラズパイの現在時刻も一緒に見る。実行予定の直前・直後や、実行中かどうかの判断に要る。
@@ -35,8 +35,8 @@ ssh raspi 'crontab -l; date'
 ### 2. ログを読む
 
 ```bash
-ssh raspi 'journalctl -t kabu       --since "3 days ago" --no-pager -o short-iso' | tail -60
-ssh raspi 'journalctl -t kabu-ticks --since "8 days ago" --no-pager -o short-iso' | tail -20
+journalctl -t kabu       --since "3 days ago" --no-pager -o short-iso | tail -60
+journalctl -t kabu-ticks --since "8 days ago" --no-pager -o short-iso | tail -20
 ```
 
 `nightly.sh` は `=== <名前> 開始 / 完了 / 失敗 ===` を出し、最後に `すべて完了 (N 秒)` か `失敗した処理: ...` で締める。締めの行が無ければ、まだ動いているか途中で死んでいる。
@@ -92,8 +92,8 @@ FROM ticks;
 
 **ログに「取得 0 件」が出ていても異常とは限らない。** 手動で流した直後に cron が走ると、取り込み済みの日を冪等に抜ける。DB の `downloaded_at` のタイムスタンプを見れば、いつ入ったか分かる。バッチの時刻と違えば手動実行のぶんである。
 
-**ラズパイ上で `sudo -u postgres psql` は通らない。** パスワードを求められて止まる。DB は必ず Mac から `kabu_dev` で見る。
+**`sudo -u postgres psql` は使えない。** `kabu` ユーザーに sudo は無い。DB は `kabu-app/.env` の `kabu_dev` で見る。
 
 **`journalctl` にログが無い期間は、バッチが止まっていたとは限らない。** cron を仕掛けた日より前は当然何も無い。`journalctl -t kabu --no-pager | head -1` で最古の行を見て、いつから記録があるか確かめてから「止まっている」と言う。
 
-**`data/` の更新時刻は判断材料にならない。** SMB マウント越しなので、見えている時刻が実際の書き込みとずれる。ファイルの有無の確認までにとどめ、件数は DB で数える。
+**`data/` はファイルの有無の確認までにとどめる。** 件数は DB で数える。
