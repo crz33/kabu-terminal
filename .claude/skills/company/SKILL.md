@@ -80,10 +80,10 @@ ORDER BY f.concept;
 
 ```bash
 ls data/ >/dev/null || echo "data/ が見えない (SSD が外れている)"
-unzip -p data/tdnet/<開示日>/<doc_id>.zip XBRLData/Attachment/qualitative.htm | bin/html2txt
+unzip -p data/tdnet/<開示日YYYYMMDD>/<doc_id>.zip XBRLData/Attachment/qualitative.htm | bin/html2txt
 ```
 
-`<開示日>` と `<doc_id>` は `tdnet_disclosures` の `disclosed_date` と `doc_id`。本文の
+`<開示日YYYYMMDD>` と `<doc_id>` は `tdnet_disclosures` の `disclosed_date` (ハイフンを抜く) と `doc_id`。本文の
 「（１）経営成績の概況」「（３）業績予想に関する説明」だけ読めば足りる。本決算なら
 「（４）今後の見通し」も。
 

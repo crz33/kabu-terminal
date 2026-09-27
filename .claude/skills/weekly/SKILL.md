@@ -83,7 +83,7 @@ FROM tdnet_disclosures WHERE code = '<コード>' ORDER BY disclosed_date DESC L
 ```
 
 集めているのは決算短信だけなので、業務提携などは入らない。短信が出ていたら、値動きの
-理由は本文にある。`data/tdnet/<開示日>/<doc_id>.zip` の `qualitative.htm` を読む
+理由は本文にある。`data/tdnet/<開示日YYYYMMDD>/<doc_id>.zip` の `qualitative.htm` を読む
 (読み方は `CLAUDE.md` の「データとインフラ」)。特損や予想の修正は Web の記事より先に
 ここで分かる。短信が無ければ Web を引く。
 
