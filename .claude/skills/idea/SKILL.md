@@ -86,7 +86,9 @@ WHERE d.disclosed_date >= current_date - 400 AND f.concept = '<要素名>';
 ### 3. 出し方を書く
 
 `kessannote/methods/<名前>-v1.md` に、要素の対応表、母集団、値の取り方、順位の付け方、
-効きの測り方、流し方を書く。frontmatter は `kind: analysis`。
+効きの測り方を書く。frontmatter は `kind: analysis`。値は「決算短信の表紙の通期予想」「東証の
+日々の終値」のように資料の名前で書き、テーブル名・カラム名・`psql` の流し方は書かない。
+サイトに出るため (`kessannote/CLAUDE.md` の「書き方」)。
 
 ### 4. SQL を書く
 
