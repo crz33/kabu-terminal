@@ -170,6 +170,18 @@ git push origin main
 
 ## つまずきどころ
 
+**短いカタカナの語は、別の語の中に当たる。** 「ムジン」はリムジンとカドミウムジンクに当たった。
+英字の社名 (MUJIN) で拾うか、横断のあとで当たった文を必ず見る。
+
+**成長戦略の PDF は、ブラウザの User-Agent を付けないと取れない。** 付けないと 200 で
+「ページが見つかりません」の HTML が返る。文字にするときは `uv run --with pypdf` を使う。
+ラズパイには `pdftotext` も `pip` も無い。
+
+```bash
+curl -sSL -A 'Mozilla/5.0' -o jgs2026.pdf <URL>
+uv run -q --with pypdf python -c "import pypdf; r=pypdf.PdfReader('jgs2026.pdf'); print('\n'.join(p.extract_text() for p in r.pages))" > jgs2026.txt
+```
+
 **有報は年 1 回しか出ない。** 2026 年に入って始めた事業は、次の有報まで本文に出てこない。
 取りこぼしが疑わしい会社は、短信の本文や適時開示で補う。
 
