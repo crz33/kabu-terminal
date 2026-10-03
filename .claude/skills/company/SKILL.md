@@ -145,13 +145,18 @@ WHERE code='<コード>' GROUP BY 1 ORDER BY 1;
 セグメント情報」「2026/3 期の有価証券報告書、大株主の状況」「東証の日々の終値」のように、資料の
 名前と日付と節で書く。テーブル名は書かない。手順は書き写さない。
 
-### 8. 建てて commit する
+### 8. 建てて commit し、push する
 
 ```bash
 cd kessannote && npx astro build && npx astro check
 ```
 
-**push はしない。** ユーザが指示するまで待つ。ここから質問の往復が始まる。
+commit したら、そのまま push する。ユーザはサイトでレポートを読むので、push しないと読めない。
+ここから質問の往復が始まる。追記するたびに commit して push する。
+
+```bash
+cd kessannote && git push origin main
+```
 
 ## ここからが本番
 
@@ -218,12 +223,6 @@ ORDER BY f.period_end;
 部分的にしか解けなければ、消さずに文を書き換える。何が分かって何が残っているかを書く。
 
 `date` は同じ日の追記なら動かさない。`summary` は結論が変わったら直す。
-
-### 12. 指示が出たら push する
-
-```bash
-cd kessannote && git push origin main
-```
 
 ## つまずきどころ
 

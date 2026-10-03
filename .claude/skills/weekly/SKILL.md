@@ -110,16 +110,20 @@ weekly-market-v1`、`date` は作成日。`summary` には**結論**を書く。
 
 分からなかったことは `## 未確定` に残す。`/open/` が全レポートから拾う。
 
-### 7. 建てて commit する
+### 7. 建てて commit し、push する
 
 ```bash
 cd kessannote && npx astro build && npx astro check
 ```
 
-commit は `kessannote` で行う。レポートと SQL を同じコミットに入れる。
+commit は `kessannote` で行い、そのまま push する。レポートと SQL を同じコミットに入れる。
 
-**push はしない。** ユーザが指示するまで待つ。ここから質問の往復が始まり、レポートが
-何度か変わる。
+```bash
+cd kessannote && git push origin main
+```
+
+ユーザはサイトでレポートを読む。push しないと読めない。ここから質問の往復が始まり、
+レポートが何度か変わる。そのたびに commit して push する。
 
 ## ここからが本番
 
@@ -136,7 +140,7 @@ commit は `kessannote` で行う。レポートと SQL を同じコミットに
 3. 数字が食い違ったら、その銘柄だけ取得元から取り直して照合する。レポートには「開示資料と
    照合した」「東証の終値と照合した」と書き、取り直したことは書かない
 4. レポートに節を足す。出典のリンクを必ず付ける
-5. 建て直して commit する
+5. 建て直して commit し、push する
 
 会話の返答とレポートの中身を揃えること。会話では書いたのにレポートに無い、が一番まずい。
 
@@ -152,13 +156,8 @@ commit は `kessannote` で行う。レポートと SQL を同じコミットに
 `date` は動かさない。同じ日の追記なら作成日のままでよい。日をまたいで大きく書き足した
 ときだけ、最終更新日に寄せる。`summary` は結論が変わったら直す。
 
-### 10. 指示が出たら push する
-
-```bash
-cd kessannote && git push origin main
-```
-
-`kabu-app` や `kabu-terminal` に触っていれば、それぞれ別に push する。
+`kabu-app` や `kabu-terminal` に触っていれば、それぞれ別に commit する。push するのは
+`kessannote` だけで、ほかはユーザの指示を待つ。
 
 ## つまずきどころ
 
