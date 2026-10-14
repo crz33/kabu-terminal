@@ -56,10 +56,13 @@ SELECT (SELECT max(date) FROM ticks) AS d1,
 
 ### 3. SQL を流す
 
-`analysis/weekly-market.sql` をそのまま使う。毎週コピーしない。4 秒ほどで返る。出るのは 8 つ。
+`analysis/weekly-market.sql` をそのまま使う。毎週コピーしない。15 秒ほどで返る。出るのは 10 個。
 
 全体 / 市場区分別 / 業種別の騰落 / 日ごとの中央値 / 週ごとの売買代金 / 区分別の倍率 /
-業種別の倍率 / 商いが膨らんだ銘柄。
+業種別の倍率 / 商いが膨らんだ銘柄 / 時価総額加重と中央値 (直近 12 週) / 当週の差が全期間の
+何番目か。
+
+系列は既定で 12 週分出る。全期間が要るときは `-v weeks=1000` を足す。
 
 ### 4. 目立つ動きを拾う
 
@@ -69,6 +72,9 @@ SELECT (SELECT max(date) FROM ticks) AS d1,
 - 区分のあいだで差がついたところ
 - 売買代金の倍率が 1.5 を超えた業種と銘柄
 - 指数と中央値がずれた日
+- 時価総額加重と中央値の差。差の絶対値の 90% 点 (2.34 ポイント、2026-10 時点) を超えた週は
+  大型株だけが動いた週として書く。日経平均とのずれがあっても、時価総額加重との差が小さければ
+  値がさ株の特性であって、大型株全般の動きではない
 
 **業種の倍率が跳ねていたら、まず中身が 1 銘柄でないかを見る。** 情報・通信業が 1.71 倍に
 なった週は、ほぼソフトバンクグループ単独だった。
@@ -98,14 +104,14 @@ FROM tdnet_disclosures WHERE code = '<コード>' ORDER BY disclosed_date DESC L
 ### 6. 書く
 
 `kessannote/CLAUDE.md` の書き方に従う。frontmatter は `type: weekly`、`method:
-weekly-market-v1`、`date` は作成日。`summary` には**結論**を書く。話題ではなく、何が
+weekly-market-v2`、`date` は作成日。`summary` には**結論**を書く。話題ではなく、何が
 分かったかを書く。
 
-**「出し方」の節に手順を書き写さない。** [`methods/weekly-market-v1.md`](../../../kessannote/methods/weekly-market-v1.md)
+**「出し方」の節に手順を書き写さない。** [`methods/weekly-market-v2.md`](../../../kessannote/methods/weekly-market-v2.md)
 に書いてある。本文にはその週に固有の値だけ置く。期間、母集団の件数、いつもと違うことを
 したときの断り。テーブル名と SQL のファイル名は書かない。
 
-定義を変えて数字が動いたら、版を上げて `methods/weekly-market-v2.md` を作る。既存の版は
+定義を変えて数字が動いたら、版を上げて `methods/weekly-market-v3.md` を作る。既存の版は
 書き換えない。古いレポートが古い版を指したままになるように。
 
 分からなかったことは `## 未確定` に残す。`/open/` が全レポートから拾う。
