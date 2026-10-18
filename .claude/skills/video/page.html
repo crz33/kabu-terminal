@@ -1,0 +1,72 @@
+<title>kabu 週次市況の動画</title>
+<style>
+  :root {
+    --bg: #f3f4f7; --surface: #ffffff; --ink: #141a26; --muted: #5d6576;
+    --line: #dde1e8; --accent: #b7791f; --screen: #121826;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0d121c; --surface: #161d2b; --ink: #e8ecf2; --muted: #98a1b3;
+      --line: #273042; --accent: #f0b43c;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d121c; --surface: #161d2b; --ink: #e8ecf2; --muted: #98a1b3;
+    --line: #273042; --accent: #f0b43c;
+  }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+    padding: 24px 16px 48px; line-height: 1.7;
+  }
+  main { max-width: 880px; margin: 0 auto; display: grid; gap: 28px; }
+  header { display: grid; gap: 4px; }
+  .eyebrow { color: var(--accent); font-size: 13px; letter-spacing: .08em; font-weight: 600; }
+  h1 { font-size: clamp(22px, 4vw, 30px); margin: 0; line-height: 1.35; text-wrap: balance; }
+  .lede { color: var(--muted); margin: 0; font-size: 14px; }
+  .episode { display: grid; gap: 12px; }
+  .episode h2 { font-size: 18px; margin: 0; text-wrap: balance; }
+  .meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; margin: 0; }
+  video {
+    width: 100%; max-width: 100%; aspect-ratio: 16 / 9; display: block;
+    background: var(--screen); border-radius: 6px;
+  }
+  .episode + .episode { border-top: 1px solid var(--line); padding-top: 28px; }
+  footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<main>
+  <header>
+    <span class="eyebrow">KABU WEEKLY</span>
+    <h1>週次市況の動画</h1>
+    <p class="lede">kessannote の週次レポートを、スライドと読み上げで 4 分ほどにまとめたもの。新しい週が上。</p>
+  </header>
+
+  <section id="episodes"></section>
+
+  <footer>個人の調べもので、特定の銘柄の売買を勧めるものではありません。数字の出し方は kessannote.com の各レポートにあります。</footer>
+</main>
+
+<script>
+  // 新しい週を足すときは先頭に 1 行足す。src は動画をアップロードしたときの url
+  const EPISODES = [
+    { week: "2026-10-09 → 10-16", title: "日経平均は5%安、全体は横ばい", length: "4:24",
+      src: "/_blob/e212cac9dad16d1068781d880693c893" },
+  ];
+  const root = document.getElementById("episodes");
+  for (const ep of EPISODES) {
+    const art = document.createElement("article");
+    art.className = "episode";
+    const h = document.createElement("h2");
+    h.textContent = ep.title;
+    const m = document.createElement("p");
+    m.className = "meta";
+    m.textContent = `${ep.week} ・ ${ep.length}`;
+    const v = document.createElement("video");
+    v.controls = true; v.preload = "metadata"; v.playsInline = true; v.src = ep.src;
+    art.append(h, m, v);
+    root.append(art);
+  }
+</script>
