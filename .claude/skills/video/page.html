@@ -2,19 +2,19 @@
 <style>
   :root {
     --bg: #f3f4f7; --surface: #ffffff; --ink: #141a26; --muted: #5d6576;
-    --line: #dde1e8; --accent: #b7791f; --screen: #121826;
+    --line: #dde1e8; --accent: #b7791f; --screen: #121826; --btn: #e7eaf0;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
       --bg: #0d121c; --surface: #161d2b; --ink: #e8ecf2; --muted: #98a1b3;
-      --line: #273042; --accent: #f0b43c;
+      --line: #273042; --accent: #f0b43c; --btn: #222b3c;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
     --bg: #0d121c; --surface: #161d2b; --ink: #e8ecf2; --muted: #98a1b3;
-    --line: #273042; --accent: #f0b43c;
+    --line: #273042; --accent: #f0b43c; --btn: #222b3c;
   }
   body {
     background: var(--bg); color: var(--ink);
@@ -27,46 +27,138 @@
   h1 { font-size: clamp(22px, 4vw, 30px); margin: 0; line-height: 1.35; text-wrap: balance; }
   .lede { color: var(--muted); margin: 0; font-size: 14px; }
   .episode { display: grid; gap: 12px; }
+  .episode + .episode { border-top: 1px solid var(--line); padding-top: 28px; }
   .episode h2 { font-size: 18px; margin: 0; text-wrap: balance; }
   .meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; margin: 0; }
-  video {
-    width: 100%; max-width: 100%; aspect-ratio: 16 / 9; display: block;
-    background: var(--screen); border-radius: 6px;
+  video, .thumb {
+    width: 100%; max-width: 100%; display: block; border-radius: 6px; background: var(--screen);
   }
-  .episode + .episode { border-top: 1px solid var(--line); padding-top: 28px; }
+  video { aspect-ratio: 16 / 9; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button {
+    font: inherit; font-size: 14px; color: var(--ink); background: var(--btn);
+    border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button[disabled] { opacity: .55; cursor: default; }
+  details { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 12px 14px; }
+  summary { cursor: pointer; font-size: 14px; font-weight: 600; }
+  .yt { display: grid; gap: 10px; margin-top: 10px; }
+  .yt label { font-size: 12px; color: var(--muted); }
+  .yt textarea {
+    width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical;
+  }
+  .status { font-size: 13px; color: var(--muted); min-height: 1.4em; margin: 0; }
+  .channel { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 24px; }
+  .channel img { width: 72px; height: 72px; border-radius: 50%; }
+  .channel div { display: grid; gap: 6px; }
   footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); padding-top: 16px; }
 </style>
 
 <main>
   <header>
-    <span class="eyebrow">日本株 WEEKLY</span>
+    <span class="eyebrow">けっさんノート ・ @kessannote</span>
     <h1>週次市況の動画</h1>
-    <p class="lede">kessannote の週次レポートを、スライドと読み上げで 4 分ほどにまとめたもの。新しい週が上。</p>
+    <p class="lede">kessannote の週次レポートを、スライドと読み上げで 4 分ほどにまとめたもの。新しい週が上。保存ボタンから端末に取り込み、YouTube に上げる。</p>
   </header>
 
   <section id="episodes"></section>
+
+  <section class="channel">
+    <img src="/_blob/98745e7b93f05d7655593296a7817e3d" alt="チャンネルのアイコン">
+    <div>
+      <strong>チャンネルのアイコン</strong>
+      <div class="row"><button type="button" id="save-icon">アイコンを保存</button></div>
+    </div>
+  </section>
+
+  <p class="status" id="status" role="status"></p>
 
   <footer>個人が公開されているデータをもとに調査した内容です。特定の銘柄の売買を勧めるものではありません。数字の出し方は kessannote.com の各レポートにあります。</footer>
 </main>
 
 <script>
-  // 新しい週を足すときは先頭に 1 行足す。src は動画をアップロードしたときの url
+  // 新しい週を足すときは先頭に 1 件足す。video と thumb はアップロードしたときの url
   const EPISODES = [
-    { week: "2026-10-09 → 10-16", title: "日経平均は5%安、全体は横ばい", length: "4:26",
-      src: "/_blob/b53d9e14b5b27375a75a5a3b245eab78" },
-  ];
+  {
+    "week": "2026-10-09 → 10-16",
+    "title": "日経平均は5%安、全体は横ばい",
+    "length": "4:26",
+    "video": "/_blob/b53d9e14b5b27375a75a5a3b245eab78",
+    "thumb": "/_blob/e90b033eaed3602edf38310075f028c7",
+    "file": "20261017_weekly-market",
+    "ytTitle": "日経平均5%安でも半分の銘柄は上昇｜AI・半導体の大型株だけが下げた週【週次市況 10/9→10/16】",
+    "ytDesc": "日経平均は5.37%下げたのに、東証の全銘柄の騰落率の中央値はプラス0.07%で、半分の銘柄が上げました。下げたのはキオクシア、アドバンテスト、ソフトバンクグループ、東京エレクトロンなど AI・半導体の大型株です。電気機器という業種を除くと、時価総額で重みを付けた騰落はおよそプラス0.6%でした。\n\n0:00 オープニング\n0:10 週の騰落 (日経平均・中央値・時価総額加重)\n0:42 ① 指数の下げは10月13日と15日\n1:35 ② 下げたのは AI・半導体の大型株\n2:27 ③ 銀行が2週続けて最下位\n2:45 材料で急騰した銘柄 (クラスターテクノロジー、ウインテストほか)\n3:21 そのほかの動き\n3:51 まとめ\n\n▼ 詳しいデータと出典\nhttps://kessannote.com/reports/20261017_weekly-market/\n\n▼ 数字の出し方\n・対象は東証プライム・スタンダード・グロースに上場する内国株 3,625銘柄\n・期間は 2026年10月9日の終値から 10月16日の終値まで (4営業日)\n・株価は東証の日々の終値 (株式分割を調整した値)\n・日経平均の終値と前日比は、報道各社の記事から引いています\n・値動きの理由は、記事と適時開示で確かめられたものだけを取り上げています\n\n▼ ご注意\nこの動画は、個人が公開されているデータをもとに調査した内容です。特定の銘柄の売買を勧めるものではありません。投資判断はご自身でお願いします。\n\nナレーションは Google Cloud Text-to-Speech の合成音声です。\n\n#日本株 #株式投資 #日経平均 #半導体株 #週次市況"
+  }
+];
+
+  const statusEl = document.getElementById("status");
+  const say = (s) => { statusEl.textContent = s; };
+  let downloads = null;
+
+  async function saveFile(url, filename, btn) {
+    if (!downloads) { say("この画面では保存できません。claude.ai のアプリかブラウザで開いてください。"); return; }
+    btn.disabled = true;
+    say(`${filename} を読み込んでいます…`);
+    try {
+      const blob = await (await fetch(url)).blob();
+      await downloads.save({ filename, data: blob });
+      say(`${filename} を保存しました。`);
+    } catch (e) {
+      const code = e && e.code;
+      if (code === "declined") say("保存を取りやめました。");
+      else if (code === "rate_limited") say("ほかの保存の確認が開いています。閉じてからもう一度押してください。");
+      else say(`保存できませんでした (${code || "error"})。`);
+    } finally { btn.disabled = false; }
+  }
+
+  async function copyText(text, area, btn, what) {
+    try { await navigator.clipboard.writeText(text); say(`${what}をコピーしました。`); }
+    catch { area.focus(); area.select(); say(`${what}を選択しました。長押しでコピーしてください。`); }
+  }
+
   const root = document.getElementById("episodes");
-  for (const ep of EPISODES) {
+  EPISODES.forEach((ep, i) => {
     const art = document.createElement("article");
     art.className = "episode";
-    const h = document.createElement("h2");
-    h.textContent = ep.title;
-    const m = document.createElement("p");
-    m.className = "meta";
-    m.textContent = `${ep.week} ・ ${ep.length}`;
+    const h = document.createElement("h2"); h.textContent = ep.title;
+    const m = document.createElement("p"); m.className = "meta"; m.textContent = `${ep.week} ・ ${ep.length}`;
     const v = document.createElement("video");
-    v.controls = true; v.preload = "metadata"; v.playsInline = true; v.src = ep.src;
-    art.append(h, m, v);
+    v.controls = true; v.preload = "metadata"; v.playsInline = true; v.src = ep.video; v.poster = ep.thumb;
+    const row = document.createElement("div"); row.className = "row";
+    const bv = document.createElement("button"); bv.type = "button"; bv.textContent = "動画を保存";
+    bv.onclick = () => saveFile(ep.video, `${ep.file}.mp4`, bv);
+    const bt = document.createElement("button"); bt.type = "button"; bt.textContent = "サムネイルを保存";
+    bt.onclick = () => saveFile(ep.thumb, `${ep.file}-thumb.png`, bt);
+    row.append(bv, bt);
+
+    const det = document.createElement("details");
+    if (i === 0) det.open = true;
+    const sum = document.createElement("summary"); sum.textContent = "YouTube のタイトルと概要欄";
+    const yt = document.createElement("div"); yt.className = "yt";
+    const mk = (label, text, rows, what) => {
+      const id = `${ep.file}-${what === "タイトル" ? "title" : "desc"}`;
+      const l = document.createElement("label"); l.htmlFor = id; l.textContent = label;
+      const ta = document.createElement("textarea"); ta.id = id; ta.rows = rows; ta.readOnly = true; ta.value = text;
+      const b = document.createElement("button"); b.type = "button"; b.textContent = `${what}をコピー`;
+      b.onclick = () => copyText(text, ta, b, what);
+      const r = document.createElement("div"); r.className = "row"; r.append(b);
+      yt.append(l, ta, r);
+    };
+    mk("タイトル", ep.ytTitle, 2, "タイトル");
+    mk("概要欄", ep.ytDesc, 10, "概要欄");
+    det.append(sum, yt);
+
+    art.append(h, m, v, row, det);
     root.append(art);
-  }
+  });
+
+  const bi = document.getElementById("save-icon");
+  bi.onclick = () => saveFile("/_blob/98745e7b93f05d7655593296a7817e3d", "kessannote-icon.png", bi);
+
+  (async () => {
+    try { downloads = await window.claude?.use?.("downloads") ?? null; } catch { downloads = null; }
+    if (!downloads) say("この画面では保存ボタンが使えません。");
+  })();
 </script>

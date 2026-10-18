@@ -67,18 +67,16 @@ cd ~/kabu-terminal
 `work/f###.png` (字幕付きの各フレーム) を何枚か Read で見る。字幕が 2 行の文を選ぶこと。
 見るのは、字幕がグラフやラベルを隠していないか、横棒のラベルがはみ出していないか。
 
-### 4. ページに載せる
+### 4. サムネイルを作る
 
-ページは 1 枚で、週ごとに動画が上から並ぶ。別の会話から更新するので、毎回 `url` を渡す。
+台本の末尾に `THUMB` (上の小見出し、大きく出す数字 2 つ、下の一言) を書いて作る。
 
-1. `Artifact` の `action: "read"` でページを読む。いまの版を手元に保存する
-2. `Artifact` の publish に `url`、`asset: true`、`file_path` に mp4 を渡してアップロードする。
-   返ってきた `/_blob/<id>` を控える
-3. 読んだページの `EPISODES` の先頭に 1 行足す (`week`、`title`、`length`、`src`)
-4. `url` を付けて publish する。`capabilities` は渡さない (前の版の `assets` が引き継がれる)
-5. `page.html` も同じ中身に書き換えておく
+```bash
+.claude/skills/video/thumbnail.py kessannote/videos/<名前>.py data/video/<名前>
+```
 
-会話にファイルとして送る (SendUserFile) 道は、このセッションの形では使えない。
+`data/video/<名前>/thumb.png` (1280x720) ができる。Read で見て、字が切れていないか確かめる。
+チャンネルのアイコンは `thumbnail.py --icon` で作った `data/video/channel-icon.png` で、毎週は作らない。
 
 ### 5. YouTube のタイトルと概要欄を書く
 
@@ -86,7 +84,23 @@ cd ~/kabu-terminal
 `work/frames.txt` の文ごとの長さをスライドごとに足して出す。概要欄には、レポートへのリンク、
 対象の銘柄数と期間、免責、合成音声であることを必ず入れる。上げるのはユーザがスマホから行う。
 
-### 6. commit する
+### 6. ページに載せる
+
+ページは 1 枚で、週ごとに動画が上から並ぶ。各週に動画と、サムネイル・タイトル・概要欄の保存と
+コピーのボタンが付く。ユーザはスマホでこのページを開き、保存とコピーで YouTube アプリに渡す。
+別の会話から更新するので、毎回 `url` を渡す。
+
+1. `Artifact` の `action: "read"` でページを読む。いまの版を手元に保存する
+2. `Artifact` の publish に `url`、`asset: true`、`file_path` を渡して、mp4 と thumb.png を 1 つずつ
+   アップロードする (data/ の下のファイルはまとめて上げられない)。返ってきた `/_blob/<id>` を控える
+3. 読んだページの `EPISODES` の先頭に 1 件足す。`week`、`title`、`length`、`video`、`thumb`、
+   `file`、`ytTitle`、`ytDesc`。`ytTitle` と `ytDesc` は手順 5 の .youtube.md から写す
+4. `url` を付けて publish する。`capabilities` は渡さない (`assets` と `downloads` が引き継がれる)
+5. `page.html` も同じ中身に書き換えておく
+
+会話にファイルとして送る (SendUserFile) 道は、このセッションの形では使えない。
+
+### 7. commit する
 
 台本は `kessannote` に commit して push する。`render.py` や `page.html` を直したら
 `kabu-terminal` に別に commit する (push はユーザの指示を待つ)。
