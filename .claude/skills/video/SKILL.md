@@ -72,7 +72,13 @@ cd ~/kabu-terminal
 
 会話にファイルとして送る (SendUserFile) 道は、このセッションの形では使えない。
 
-### 5. commit する
+### 5. YouTube のタイトルと概要欄を書く
+
+`kessannote/videos/<名前>.youtube.md` に置く。前の週のものを型にする。チャプターの時刻は
+`work/frames.txt` の文ごとの長さをスライドごとに足して出す。概要欄には、レポートへのリンク、
+対象の銘柄数と期間、免責、合成音声であることを必ず入れる。上げるのはユーザがスマホから行う。
+
+### 6. commit する
 
 台本は `kessannote` に commit して push する。`render.py` や `page.html` を直したら
 `kabu-terminal` に別に commit する (push はユーザの指示を待つ)。
