@@ -147,7 +147,7 @@ API が使えないときの手動の控えになる。
 **Google Drive に上げるなら、自分の OAuth クライアントが要る。** rclone の共用の client_id は
 2026 年中に止まる。rclone は `~/.local/bin/rclone` に入れてある。
 
-**新しいチャンネルは、カスタムサムネイルを API で設定できない。** 2026-10-18 の初回は動画だけ
-上がり、サムネイルは 403 (`doesn't have permissions to upload and set custom video thumbnails`)
-で弾かれた。YouTube Studio の「設定」→「チャンネル」→「機能の利用資格」で中級機能を有効にして
-から、`youtube.py thumb <名前>` でサムネイルだけ付け直す。
+**サムネイルだけ 403 で弾かれることがある。** 2026-10-18 の初回は動画だけ上がり、サムネイルは
+403 (`doesn't have permissions to upload and set custom video thumbnails`) で弾かれた。中級者向け
+機能は最初から有効で、1 時間後に `youtube.py thumb <名前>` を流したら通った。チャンネルを作った
+直後で、権限が行き渡っていなかったとみている。弾かれたら、時間を置いて `thumb` を流し直す。
