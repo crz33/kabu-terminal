@@ -1,6 +1,6 @@
 ---
 name: video
-description: 週次市況のレポートを、スライドと読み上げと字幕の動画 (1920x1080、4 分前後) にして、claude.ai の非公開ページに載せる。kessannote の reports/*_weekly-market.md から台本を書き、pillow と edge-tts と ffmpeg で mp4 を作る。「週次の動画を作って」「レポートを動画にして」と言われたときに使う。
+description: 週次市況のレポートを、スライドと読み上げと字幕の動画 (1920x1080、4 分前後) にして、claude.ai の非公開ページに載せる。kessannote の reports/*_weekly-market.md から台本を書き、pillow と Google Cloud Text-to-Speech と ffmpeg で mp4 を作る。「週次の動画を作って」「レポートを動画にして」と言われたときに使う。
 ---
 
 # 週次市況の動画
@@ -14,6 +14,8 @@ description: 週次市況のレポートを、スライドと読み上げと字�
 | --- | --- |
 | 台本 | `kessannote/videos/<レポートと同じ名前>.py` |
 | 描画 | `.claude/skills/video/render.py` (venv `~/.venvs/video` の python で動く) |
+| 声 | Google Cloud Text-to-Speech の `ja-JP-Chirp3-HD-Sulafat`。プロジェクトは `kabu-video` |
+| API キー | `~/.config/kabu/video.env` の `GOOGLE_TTS_API_KEY` (権限 600。表示しない) |
 | 出力 | `data/video/<レポートと同じ名前>/video.mp4`。途中のファイルは同じ場所の `work/` |
 | 見せる場所 | https://claude.ai/artifact/LF5znpF9SVkqTvs5XtS1b5 (非公開。元のページは `page.html`) |
 
@@ -23,7 +25,7 @@ venv が無ければ作る。この python には pip も ensurepip も無い。
 python3 -m venv --without-pip ~/.venvs/video
 curl -fsSL https://bootstrap.pypa.io/get-pip.py -o <scratchpad>/get-pip.py
 ~/.venvs/video/bin/python <scratchpad>/get-pip.py -q
-~/.venvs/video/bin/pip install -q edge-tts pillow
+~/.venvs/video/bin/pip install -q pillow
 ```
 
 ## 手順
@@ -49,8 +51,8 @@ cd ~/kabu-terminal
 .claude/skills/video/render.py kessannote/videos/<名前>.py data/video/<名前>
 ```
 
-読み上げは文ごとにキャッシュする (`work/s###.txt` と mp3)。初回は 30 文で約 2 分、文を直した
-2 回目以降は直した文だけ作り直す。最後に `video.mp4 <秒数>s ...` と出れば終わり。
+読み上げは文ごとにキャッシュする (`work/s###.txt` に声の名前と文、mp3)。初回は 30 文で約 2 分半、
+文か声を直した 2 回目以降は、変わった文だけ作り直す。最後に `video.mp4 <秒数>s ...` と出れば終わり。
 
 ### 3. 見た目を確かめる
 
@@ -77,9 +79,11 @@ cd ~/kabu-terminal
 
 ## つまずきどころ
 
-**読み上げの声は Microsoft Edge の読み上げを非公式に使っている (edge-tts)。** API キーは要らない
-一方で、規約上の扱いがはっきりしない。手元で見る分にとどめ、YouTube などに出す前に声を替えるか
-確かめること。
+**読み上げは Google Cloud の Text-to-Speech で、文字数で課金される。** Chirp 3: HD は毎月 100 万文字
+まで無料で、1 本は 1,200〜1,500 文字。キーは Text-to-Speech API だけに制限してあり、予算アラートは
+月 1 ドル。日本語の Chirp 3: HD の声は 30 種あり、2026-10-18 に女性の声を全部聴き比べて Sulafat に
+決めた。IRIS から引き継いだ時点の edge-tts (Microsoft Edge の読み上げの非公式利用) は、規約が
+はっきりしないので替えた。
 
 **ffmpeg の concat のリストは、リストのある場所からの相対パスで読まれる。** render.py は出力先を
 絶対パスに直してから使う。

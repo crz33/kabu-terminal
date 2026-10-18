@@ -5,19 +5,21 @@
 spec.py は SLIDES (スライドのリスト) と TITLE を定義する。各スライドは
 {"kind": ..., ..., "say": [文, ...]} で、文ごとに読み上げと字幕を作る。
 """
-import asyncio
+import base64
+import json
+import os
 import importlib.util
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
-import edge_tts
 from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1920, 1080
 FONT = "/usr/share/fonts/opentype/ipaexfont-gothic/ipaexg.ttf"
-VOICE = "ja-JP-NanamiNeural"
-RATE = "+8%"
+VOICE = "ja-JP-Chirp3-HD-Sulafat"  # Google Cloud Text-to-Speech。2026-10-18 に聴き比べて選んだ
+KEY_FILE = Path.home() / ".config/kabu/video.env"  # GOOGLE_TTS_API_KEY=... (権限 600)
 GAP = 0.35  # 文と文の間の無音 (秒)
 
 BG = (18, 24, 38)
@@ -199,8 +201,24 @@ def reading(s):
     return s
 
 
-async def tts(text, path):
-    await edge_tts.Communicate(reading(text), VOICE, rate=RATE).save(str(path))
+def api_key():
+    if os.environ.get("GOOGLE_TTS_API_KEY"):
+        return os.environ["GOOGLE_TTS_API_KEY"]
+    for line in KEY_FILE.read_text().splitlines():
+        if line.startswith("GOOGLE_TTS_API_KEY="):
+            return line.split("=", 1)[1].strip()
+    raise SystemExit(f"GOOGLE_TTS_API_KEY が {KEY_FILE} にない")
+
+
+def tts(text, path):
+    body = {"input": {"text": reading(text)},
+            "voice": {"languageCode": "ja-JP", "name": VOICE},
+            "audioConfig": {"audioEncoding": "MP3"}}
+    req = urllib.request.Request("https://texttospeech.googleapis.com/v1/text:synthesize",
+                                 data=json.dumps(body).encode(),
+                                 headers={"Content-Type": "application/json", "X-Goog-Api-Key": api_key()})
+    with urllib.request.urlopen(req) as r:
+        path.write_bytes(base64.b64decode(json.load(r)["audioContent"]))
 
 
 def duration(path):
@@ -226,9 +244,11 @@ def main():
         for sent in s["say"]:
             mp3, wav = work / f"s{n:03d}.mp3", work / f"s{n:03d}.wav"
             cache = work / f"s{n:03d}.txt"
-            if not (mp3.exists() and cache.exists() and cache.read_text() == sent):
-                asyncio.run(tts(sent, mp3))
-                cache.write_text(sent)
+            # 声を替えたときも作り直すよう、キャッシュの鍵に声の名前を含める
+            key = f"{VOICE}\n{sent}"
+            if not (mp3.exists() and cache.exists() and cache.read_text() == key):
+                tts(sent, mp3)
+                cache.write_text(key)
             subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(mp3), "-af", f"apad=pad_dur={GAP}",
                             "-ar", "48000", "-ac", "1", str(wav)], check=True)
             png = work / f"f{n:03d}.png"
