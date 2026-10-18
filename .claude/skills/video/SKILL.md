@@ -87,7 +87,8 @@ cd ~/kabu-terminal
 ### 6. ページに載せる
 
 ページは 1 枚で、週ごとに動画が上から並ぶ。各週に動画と、サムネイル・タイトル・概要欄の保存と
-コピーのボタンが付く。ユーザはスマホでこのページを開き、保存とコピーで YouTube アプリに渡す。
+コピーのボタンが付く。YouTube には手順 7 で API から上げるので、ページは上げる前の確認用と、
+API が使えないときの手動の控えになる。
 別の会話から更新するので、毎回 `url` を渡す。
 
 1. `Artifact` の `action: "read"` でページを読む。いまの版を手元に保存する
@@ -100,7 +101,25 @@ cd ~/kabu-terminal
 
 会話にファイルとして送る (SendUserFile) 道は、このセッションの形では使えない。
 
-### 7. commit する
+### 7. YouTube に上げる
+
+```bash
+.claude/skills/video/youtube.py upload <名前>
+```
+
+けっさんノート (@kessannote) に、非公開で上がる。タイトルと概要欄は手順 5 の `.youtube.md` から、
+サムネイルは `thumb.png` から入れる。上げた動画の ID は `data/video/<名前>/youtube.json` に残り、
+同じ週は二度上がらない。直したくて上げ直すなら、YouTube Studio で前の動画を消してから
+`youtube.json` を消す。
+
+審査を通っていない API プロジェクトからは非公開でしか上げられない。公開はユーザが YouTube Studio
+で行う。上げたら動画の URL をユーザに伝え、「確かめて公開に切り替えてください」と頼む。
+
+鍵は `~/.config/kabu/youtube-client.json` (OAuth クライアント) と `youtube-token.json` (リフレッシュ
+トークン)。トークンが切れたら、ユーザに SSH で `youtube.py auth` を流してもらう。チャンネルを
+選ぶ画面で「けっさんノート」を選ぶこと。個人のチャンネルを選ぶと、そちらに上がる。
+
+### 8. commit する
 
 台本は `kessannote` に commit して push する。`render.py` や `page.html` を直したら
 `kabu-terminal` に別に commit する (push はユーザの指示を待つ)。
@@ -126,3 +145,8 @@ cd ~/kabu-terminal
 
 **Google Drive に上げるなら、自分の OAuth クライアントが要る。** rclone の共用の client_id は
 2026 年中に止まる。rclone は `~/.local/bin/rclone` に入れてある。
+
+**新しいチャンネルは、カスタムサムネイルを API で設定できない。** 2026-10-18 の初回は動画だけ
+上がり、サムネイルは 403 (`doesn't have permissions to upload and set custom video thumbnails`)
+で弾かれた。YouTube Studio の「設定」→「チャンネル」→「機能の利用資格」で中級機能を有効にして
+から、`youtube.py thumb <名前>` でサムネイルだけ付け直す。
