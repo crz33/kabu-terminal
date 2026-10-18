@@ -134,7 +134,7 @@ ID は `data/video/<名前>/youtube.json` にある。建てて commit し、pus
 ### 9. commit する
 
 台本は `kessannote` に commit して push する。`render.py` や `page.html` を直したら
-`kabu-terminal` に別に commit する (push はユーザの指示を待つ)。
+`kabu-terminal` に別に commit して、こちらも push する。
 
 ## つまずきどころ
 

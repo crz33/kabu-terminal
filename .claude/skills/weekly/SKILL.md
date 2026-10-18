@@ -162,8 +162,7 @@ cd kessannote && git push origin main
 `date` は動かさない。同じ日の追記なら作成日のままでよい。日をまたいで大きく書き足した
 ときだけ、最終更新日に寄せる。`summary` は結論が変わったら直す。
 
-`kabu-app` や `kabu-terminal` に触っていれば、それぞれ別に commit する。push するのは
-`kessannote` だけで、ほかはユーザの指示を待つ。
+`kabu-app` や `kabu-terminal` に触っていれば、それぞれ別に commit して、そのまま push する。
 
 ## つまずきどころ
 
