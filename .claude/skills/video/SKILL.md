@@ -120,7 +120,18 @@ API が使えないときの手動の控えになる。
 トークン)。トークンが切れたら、ユーザに SSH で `youtube.py auth` を流してもらう。チャンネルを
 選ぶ画面で「けっさんノート」を選ぶこと。個人のチャンネルを選ぶと、そちらに上がる。
 
-### 8. commit する
+### 8. レポートから動画へリンクする
+
+上げたら、レポートの冒頭の段落のすぐ後に 1 行足す。動画が非公開のうちはリンク切れになるので、
+ユーザが公開したと言ってから足す。
+
+```markdown
+この週の要点は動画 (4 分 26 秒) でも見られる。[<タイトルの｜より前> — YouTube けっさんノート](https://youtu.be/<ID>)
+```
+
+ID は `data/video/<名前>/youtube.json` にある。建てて commit し、push する。
+
+### 9. commit する
 
 台本は `kessannote` に commit して push する。`render.py` や `page.html` を直したら
 `kabu-terminal` に別に commit する (push はユーザの指示を待つ)。
