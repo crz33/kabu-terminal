@@ -1,6 +1,6 @@
 ---
 name: video
-description: 週次市況のレポートを、スライドと読み上げと字幕の動画 (1920x1080、4 分前後) にして、claude.ai の非公開ページに載せる。kessannote の reports/*_weekly-market.md から台本を書き、pillow と Google Cloud Text-to-Speech と ffmpeg で mp4 を作る。「週次の動画を作って」「レポートを動画にして」と言われたときに使う。
+description: 週次市況や企業のレポートを、スライドと読み上げと字幕の動画 (1920x1080、4〜5 分) にして、claude.ai の非公開ページに載せ、YouTube に非公開で上げる。kessannote の reports/*_weekly-market.md や企業レポートから台本を書き、pillow と Google Cloud Text-to-Speech と ffmpeg で mp4 を作る。「週次の動画を作って」「レポートを動画にして」「フジクラを動画にして」と言われたときに使う。
 ---
 
 # 週次市況の動画
@@ -33,7 +33,7 @@ curl -fsSL https://bootstrap.pypa.io/get-pip.py -o <scratchpad>/get-pip.py
 ### 1. 台本を書く
 
 前の週の `kessannote/videos/*.py` を型にする。`TITLE` と `SLIDES` を定義し、スライドの `kind` は
-title / bignums / bars / hbars / bullets の 5 つ。`say` は文のリストで、1 文が読み上げ 1 回と字幕
+title / bignums / bars / hbars / bullets / line の 6 つ。`say` は文のリストで、1 文が読み上げ 1 回と字幕
 1 枚になる。
 
 構成は、タイトル → 週の騰落 (日経平均・中央値・時価総額加重) → ポイント 3 つ → そのほか → まとめと
@@ -136,6 +136,25 @@ ID は `data/video/<名前>/youtube.json` にある。建てて commit し、pus
 台本は `kessannote` に commit して push する。`render.py` や `page.html` を直したら
 `kabu-terminal` に別に commit して、こちらも push する。
 
+## 企業レポートの動画
+
+手順は週次と同じ。違うところだけ書く。2026-10-25 にフジクラで初めて作った
+(`kessannote/videos/20260929_fujikura-5803.py`)。これを型にする。
+
+- 冒頭は「日本株の企業レポートです。今回は〜を取り上げます。」に続けて、**数字の時点を必ず言う。**
+  サムネイルの小見出しと概要欄にも時点を出す。レポートを書いた日から株価が動いているため
+- 構成は、指標 (bignums) → 業績の推移 (bars) → 部門 (hbars) → 会社予想の推移 (bars) → 株価 (line)
+  → これから見たいところ → まとめと免責。8 枚、37 文で 5 分弱になる
+- 金額の棒は `"unit": "億円"` を付ける。色はアクセント色になり、目盛りはきりのいい数になる。
+  予想や目標の棒は `"dim": [番号]` で薄くする
+- 株価の線は `line` で描く。値はレポートに無いので、レポートと同じ東証の終値 (分割を調整した値) を
+  レポートの時点の日まで DB から引き、`videos/<名前>.prices.json` に置いて台本から読む。
+  始点と高値と時点の値がレポートの本文と一致するかを照らすこと。`marks` で日付に注記を付ける
+- サムネイルの `nums` は文字列も取る (`"37.1%"`、`"2倍"`)。騰落率でない値は文字列で渡す。社名は
+  下の一言に入れる。小見出しだけだと小さくて読めない
+- レポートの未確定は「これから見たいところ」として言ってよい。「まだ確かめていません」とは言わない
+- **保有中の銘柄を動画にするなら、概要欄に保有していることを書く。**
+
 ## つまずきどころ
 
 **読み上げは Google Cloud の Text-to-Speech で、文字数で課金される。** Chirp 3: HD は毎月 100 万文字
@@ -162,3 +181,7 @@ ID は `data/video/<名前>/youtube.json` にある。建てて commit し、pus
 403 (`doesn't have permissions to upload and set custom video thumbnails`) で弾かれた。中級者向け
 機能は最初から有効で、1 時間後に `youtube.py thumb <名前>` を流したら通った。チャンネルを作った
 直後で、権限が行き渡っていなかったとみている。弾かれたら、時間を置いて `thumb` を流し直す。
+
+**字幕の改行が数字の途中に入る。** 「マイナ / ス0.26%」「31 / 00億円」のように、1 行約 35 字で
+機械的に折り返す。「す。」だけが次の行に落ちることもある。字幕の帯を縦に並べた 1 枚を作って
+全文を見て、割れていたら文を 2 つに割るか詰める。1 本につき 4 文ほど直すことになる。

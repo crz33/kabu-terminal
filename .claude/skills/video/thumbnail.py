@@ -5,7 +5,7 @@
   thumbnail.py <spec.py> <出力ディレクトリ>   # spec の THUMB から thumb.png を作る
   thumbnail.py --icon <出力ファイル>           # チャンネルのアイコン。一度作れば足りる
 
-THUMB は {"kicker": 上の小見出し, "nums": [(ラベル, 値), (ラベル, 値)], "line": 下の一言}。
+THUMB は {"kicker": 上の小見出し, "nums": [(ラベル, 値), (ラベル, 値)]、値は騰落率 (float) か文字列, "line": 下の一言}。
 色とフォントは render.py に揃える。
 """
 import importlib.util
@@ -46,9 +46,12 @@ def thumb(spec, out):
         cx = 60 + colw * i + colw / 2
         f = font(44)
         d.text((cx - d.textlength(label, font=f) / 2, 170), label, font=f, fill=MUTED)
-        s = f"{v:+.2f}%" if v else "0.00%"
+        if isinstance(v, str):  # 倍率や金額など、騰落率でない値はそのまま書く
+            s, col = v, ACCENT
+        else:
+            s, col = (f"{v:+.2f}%" if v else "0.00%"), (UP if v > 0 else DOWN if v < 0 else MUTED)
         f = fit(d, s, 190, colw - 30)
-        d.text((cx - d.textlength(s, font=f) / 2, 235), s, font=f, fill=UP if v > 0 else DOWN if v < 0 else MUTED)
+        d.text((cx - d.textlength(s, font=f) / 2, 235), s, font=f, fill=col)
     f = fit(d, t["line"], 96, W - 120)
     d.text(((W - d.textlength(t["line"], font=f)) / 2, 500), t["line"], font=f, fill=FG)
     f = font(34)
