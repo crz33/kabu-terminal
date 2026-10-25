@@ -5,9 +5,15 @@
   youtube.py auth                         # 最初の 1 回だけ。ユーザが SSH で対話的に流す
   youtube.py upload <名前>                # data/video/<名前>/ の動画とサムネイルを上げる
   youtube.py thumb <名前>                 # サムネイルだけ付け直す (upload で弾かれたとき)
+  youtube.py meta <名前>                  # タイトル・概要欄・サムネイルを差し替える。URL は変わらない
+  youtube.py replace <名前>               # 非公開の動画を消して上げ直す。URL は変わる
 
 upload は kessannote/videos/<名前>.youtube.md からタイトルと概要欄を読む。上げた動画の ID は
 data/video/<名前>/youtube.json に残し、同じ週を二度上げない。
+
+YouTube は上げた動画のファイルを差し替えられない。中身を直したら replace で消して上げ直す。
+消すのは取り消せないので、replace は非公開の動画にしか効かない。公開や限定公開にした動画は
+Studio で人が判断する。
 
 鍵は ~/.config/kabu/ に置く (どれも権限 600、リポジトリに入れない)。
   youtube-client.json  Google Cloud で作った OAuth クライアント (デスクトップ アプリ) の JSON
@@ -160,6 +166,34 @@ def set_thumb(name):
     print("サムネイル: 設定した")
 
 
+def meta(name):
+    """タイトルと概要欄とサムネイルを .youtube.md と thumb.png に揃える。"""
+    out = ROOT / "data/video" / name
+    vid = json.loads((out / "youtube.json").read_text())["id"]
+    title, desc = read_youtube_md(ROOT / "kessannote/videos" / f"{name}.youtube.md")
+    body = {"id": vid, "snippet": {"title": title, "description": desc, "categoryId": CATEGORY,
+                                   "defaultLanguage": "ja", "defaultAudioLanguage": "ja"}}
+    api("PUT", "https://www.googleapis.com/youtube/v3/videos?part=snippet",
+        body=json.dumps(body).encode(), headers={"Content-Type": "application/json; charset=UTF-8"})
+    print(f"タイトルと概要欄: 差し替えた https://youtu.be/{vid}")
+    set_thumb(name)
+
+
+def replace(name):
+    out = ROOT / "data/video" / name
+    rec = out / "youtube.json"
+    vid = json.loads(rec.read_text())["id"]
+    items = api("GET", f"https://www.googleapis.com/youtube/v3/videos?part=status&id={vid}")["items"]
+    if items:
+        privacy = items[0]["status"]["privacyStatus"]
+        if privacy != "private":
+            raise SystemExit(f"{vid} は {privacy}。公開した動画は消さない。Studio で判断すること")
+        api("DELETE", f"https://www.googleapis.com/youtube/v3/videos?id={vid}", raw=True)
+        print(f"消した: https://youtu.be/{vid}")
+    rec.unlink()
+    upload(name)
+
+
 def main():
     if len(sys.argv) >= 2 and sys.argv[1] == "auth":
         auth()
@@ -167,6 +201,10 @@ def main():
         upload(sys.argv[2])
     elif len(sys.argv) == 3 and sys.argv[1] == "thumb":
         set_thumb(sys.argv[2])
+    elif len(sys.argv) == 3 and sys.argv[1] == "meta":
+        meta(sys.argv[2])
+    elif len(sys.argv) == 3 and sys.argv[1] == "replace":
+        replace(sys.argv[2])
     else:
         raise SystemExit(__doc__)
 

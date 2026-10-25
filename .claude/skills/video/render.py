@@ -78,9 +78,12 @@ def draw_bignums(d, s):
         f = font(46)
         d.text((cx - text_w(d, label, f) / 2, 290), label, font=f, fill=MUTED)
         vs = fmt_pct(val) if isinstance(val, float) else val
-        f = font(150)
+        size = 150
+        while text_w(d, vs, font(size)) > colw - 40 and size > 60:  # 「1,048億円」のような長い値を列に収める
+            size -= 6
+        f = font(size)
         col = pct_color(val) if isinstance(val, float) else FG
-        d.text((cx - text_w(d, vs, f) / 2, 370), vs, font=f, fill=col)
+        d.text((cx - text_w(d, vs, f) / 2, 370 + (150 - size) * 0.6), vs, font=f, fill=col)
         f = font(38)
         d.text((cx - text_w(d, note, f) / 2, 570), note, font=f, fill=MUTED)
     if s.get("foot"):
