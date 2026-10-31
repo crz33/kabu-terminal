@@ -238,8 +238,8 @@ def draw_line(d, s):
         tw = text_w(d, label, f)
         tx = min(max(x - tw / 2, x0), x1 - tw)
         ty = y - 62 if side == "up" else y + 22
-        d.rectangle([tx - 8, ty - 2, tx + tw + 8, ty + 42], fill=BG)  # 線と重ねない
-        d.text((tx, ty), label, font=f, fill=FG)
+        # 地の色で縁取りして線の上でも読めるようにする。箱を敷くと線が途切れて見える
+        d.text((tx, ty), label, font=f, fill=FG, stroke_width=6, stroke_fill=BG)
     if s.get("note"):
         d.text((x0, 200), s["note"], font=font(32), fill=ACCENT)
 
