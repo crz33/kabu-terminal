@@ -46,8 +46,8 @@ def thumb(spec, out):
         cx = 60 + colw * i + colw / 2
         f = font(44)
         d.text((cx - d.textlength(label, font=f) / 2, 170), label, font=f, fill=MUTED)
-        if isinstance(v, str):  # 倍率や金額など、騰落率でない値はそのまま書く
-            s, col = v, ACCENT
+        if isinstance(v, str):  # 倍率や金額など、騰落率でない値はそのまま書く。符号付きなら上げ下げの色
+            s, col = v, UP if v.startswith("+") else DOWN if v.startswith("-") else ACCENT
         else:
             s, col = (f"{v:+.2f}%" if v else "0.00%"), (UP if v > 0 else DOWN if v < 0 else MUTED)
         f = fit(d, s, 190, colw - 30)
