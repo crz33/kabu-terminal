@@ -122,6 +122,14 @@ def draw_bars(d, s):
         if s.get("unit"):  # 金額は 1,000 や 2,000 のようなきりのいい目盛りにする
             step = nice_step(vmax / 4)
             ticks = [step * k for k in range(int(vmax / step) + 1)]
+    elif s.get("unit"):  # 金額でマイナスが小さいとき、下側を値に合わせて縮める
+        vals_all = [v for _, vals in series for v in vals]
+        top, bot = max(max(vals_all), 0) * 1.25, min(vals_all) * 1.25
+        top, bot = max(top, -bot * 0.3), min(bot, -top * 0.25)  # どちらも潰れすぎないように。下のラベルが横軸に触れないよう 0.25
+        zero = y0 + (y1 - y0) * top / (top - bot)
+        sc = (y1 - y0) / (top - bot)
+        step = nice_step(top / 3)
+        ticks = [step * k for k in range(int(bot // step) + 1, int(top / step) + 1)]
     else:
         zero, sc = (y0 + y1) / 2, (y1 - y0) / 2 / vmax
         ticks = [-vmax * 0.8, -vmax * 0.4, 0, vmax * 0.4, vmax * 0.8]
