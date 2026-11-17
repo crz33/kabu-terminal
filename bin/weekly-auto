@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# 週次市況レポートを無人で書いて push し、結果を IRIS 経由で Telegram に知らせる。
+#
+#   0 6 * * 6 $HOME/kabu-terminal/bin/weekly-auto 2>&1 | /usr/bin/logger -t kabu-weekly
+#
+# --dry を付けると、書かずに道具の許可だけを試す (DB、原本、Web 検索、ビルド)。結果は通知する。
+#
+# 土曜 03:00 の株価取得 (kabu-app/scripts/weekly_ticks.sh、05:20 ごろ終わる) のあとに回す。
+# 取得が長引いていたら、同じロックが空くまで待つ。
+#
+# 動画は作らない。ユーザがレポートを読んで質問し、書き戻してから頼む流れなので、ここで
+# つなげない。
+#
+# 通知は /var/tmp/kabu-notify/*.txt に 1 通 1 ファイルで置く。iris の cron が 5 分おきに拾い、
+# 「[KABU] 」を付けて Telegram に送る。1 行目が件名、1 通は先頭 3,500 バイトまで。
+# 書きかけを拾われないよう、.tmp に書いてから .txt に mv する。
+#
+# Claude は dontAsk で動かし、許可した道具だけを使わせる。Web の記事を読みながら無人で動く
+# ので、bypassPermissions にはしない。
+set -uo pipefail
+
+# cron の PATH は最小限で、claude も npx (~/.local/lib/node/bin) も入っていない。bin/start と
+# 同じく、ログインシェルの PATH を使う。
+export PATH="$(bash -lc 'printf %s "$PATH"')"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+NOTIFY=/var/tmp/kabu-notify
+TODAY="$(date +%Y%m%d)"
+LOG="$(mktemp -t kabu-weekly.XXXXXX)"
+
+notify() {  # notify <名前> <本文>
+    local tmp="$NOTIFY/$1.tmp"
+    printf '%s\n' "$2" > "$tmp" && chmod 640 "$tmp" && mv "$tmp" "$NOTIFY/$1.txt"
+}
+
+fail() {
+    echo "$1" >&2
+    notify "weekly-$TODAY-fail" "週次レポート失敗 ($TODAY)
+$1"
+    exit 1
+}
+
+# SSD が外れていると data は壊れたリンクになる。原本を読めないまま書かせない。
+[ -d "$ROOT/data/tdnet" ] || fail "data/ が読めない。SSD が外れていないか確かめてください。"
+
+# 株価の取得と同じロックが空くまで待つ。取れたらすぐ放す (08:00 の補完を止めないため)。
+exec 9>/tmp/kabu.lock
+flock -w 5400 9 || fail "株価の取得が 07:30 になっても終わらない。status で確かめてください。"
+flock -u 9
+
+read -r MAXD N < <("$ROOT/bin/kabu-psql" -At -F' ' -c \
+    "SELECT max(date), count(*) FILTER (WHERE date = (SELECT max(date) FROM ticks)) FROM ticks")
+[ "${N:-0}" -ge 3500 ] || fail "株価が揃っていない。最新日 $MAXD の銘柄数が $N (3600 台が正常)。"
+[ "$(date -d "$MAXD" +%s)" -ge "$(date -d '7 days ago' +%s)" ] \
+    || fail "株価の最新日が $MAXD で古い。取得が失敗していないか確かめてください。"
+
+# 許可のルールに当たる打ち方。試験 (--dry) と本番で同じものを渡す。
+RULES="- DB には bin/kabu-psql で繋いでください。引数は psql と同じです (例: bin/kabu-psql -A -F' | ' -v d0=... -f kessannote/analysis/weekly-market.sql)。.env は読まないでください
+- コマンドに変数展開 (\$X) やコマンド置換 (\$(...)) を使うと拒否されます。値は直に書いてください。パイプは unzip -p ... | bin/html2txt の形なら通ります
+- git は -C を使わず、cd kessannote を単独で打ってから、git を別のコマンドで打ってください"
+
+PROMPT="週次スキル (weekly) の手順 1〜7 で、今週の週次市況レポートを書いてください。
+無人の自動実行です。質問できる相手はいません。
+
+- 作成日は $(date +%Y-%m-%d)。ファイル名は reports/${TODAY}_weekly-market.md
+- 株価は確認済みです (最新日 $MAXD、$N 銘柄)
+${RULES}
+- 一時ファイルは /tmp/claude-weekly/ に置いてください
+- 開けなかった記事、確かめられなかった数字は、本文に書かず未確定に回してください
+- commit と push は kessannote だけです。kabu-terminal と kabu-app には触らないでください
+- 動画は作りません
+
+最後の出力は、次の形のプレーンテキストだけにしてください。Telegram にそのまま送ります。
+1 行目: 週次レポート <前週末 M/D>→<当週末 M/D> 完了
+2 行目以降: frontmatter の summary (結論)
+最後の行: https://kessannote.com/reports/${TODAY}_weekly-market/"
+
+if [ "${1:-}" = "--dry" ]; then
+    PROMPT="無人の自動実行の、道具の許可の試験です。ファイルは書かず、commit もしないでください。
+次を順に試し、それぞれ通ったか拒否されたかを 1 行ずつ出してください。
+
+${RULES}
+
+1. bin/kabu-psql で ticks の最新日と銘柄数
+2. data/tdnet/ の最新の日付のディレクトリから zip を 1 つ選び、unzip -p で qualitative.htm を bin/html2txt に通して先頭 5 行
+3. WebSearch で「日経平均 大引け」
+4. kessannote で git status と npx astro check
+最後の行は「dry 完了」にしてください。"
+fi
+
+ALLOWED=(
+    Read Write Edit Glob Grep WebSearch WebFetch Skill
+    "Bash(bin/kabu-psql:*)" "Bash($ROOT/bin/kabu-psql:*)" "Bash(unzip:*)" "Bash($ROOT/bin/html2txt:*)" "Bash(bin/html2txt:*)"
+    "Bash(ls:*)" "Bash(cat:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(sed -n:*)" "Bash(grep:*)"
+    "Bash(wc:*)" "Bash(sort:*)" "Bash(mkdir:*)" "Bash(cd:*)" "Bash(date:*)"
+    "Bash(git status:*)" "Bash(git diff:*)" "Bash(git log:*)" "Bash(git add:*)"
+    "Bash(git commit:*)" "Bash(git push origin main)"
+    "Bash(npx astro build:*)" "Bash(npx astro check:*)"
+)
+
+mkdir -p /tmp/claude-weekly
+cd "$ROOT"
+timeout 3h claude -p "$PROMPT" --permission-mode dontAsk --add-dir /mnt/usb/data /tmp/claude-weekly --allowedTools "${ALLOWED[@]}" \
+    > "$LOG" 2>&1
+RC=$?
+cat "$LOG"
+
+if [ "${1:-}" = "--dry" ]; then
+    notify "weekly-$TODAY-dry" "週次の自動実行の試験 (終了コード $RC)
+$(tail -c 3000 "$LOG")"
+    rm -f "$LOG"
+    exit $RC
+fi
+
+REPORT="$ROOT/kessannote/reports/${TODAY}_weekly-market.md"
+PUSHED=$(git -C "$ROOT/kessannote" log origin/main --oneline -- "reports/${TODAY}_weekly-market.md" | head -1)
+if [ $RC -ne 0 ] || [ ! -f "$REPORT" ] || [ -z "$PUSHED" ]; then
+    fail "終了コード $RC、レポート $( [ -f "$REPORT" ] && echo あり || echo なし )、push $( [ -n "$PUSHED" ] && echo 済み || echo まだ )。
+$(tail -c 2000 "$LOG")"
+fi
+
+notify "weekly-$TODAY" "$(tail -c 3000 "$LOG")"
+rm -f "$LOG"

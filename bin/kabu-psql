@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# kabu の DB に psql で繋ぐ。引数はそのまま psql に渡す。
+#
+# 接続先は kabu-app/.env の DATABASE_URL (kabu_dev)。パスワードが入るので表示しない。
+# 無人の自動実行 (bin/weekly-auto) では、変数展開を含むコマンドが許可のルールに当たらない。
+# 接続文字列をこの中で読み、コマンドを `kabu-psql ...` の形に揃えるために置いている。
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+set -a; . "$ROOT/kabu-app/.env"; set +a
+exec psql "postgresql://${DATABASE_URL#postgresql+psycopg://}" "$@"

@@ -27,7 +27,19 @@ psql "postgresql://$PGURL" -A -F' | ' -v d0=<起点> -v d1=<終点> -f ../kessan
 
 `DATABASE_URL` にはパスワードが入っている。`echo` しない。
 
-## 手順
+## 自動実行
+
+土曜 06:00 に kabu の cron が `bin/weekly-auto` を流し、手順 1〜7 を無人で回す。株価の取得と
+同じロックが空くまで待ち、銘柄数が 3500 を切っていたら書かずに止める。結果も失敗も
+`/var/tmp/kabu-notify/` に置き、IRIS がそれを Telegram に流す。ログは `journalctl -t kabu-weekly`。
+
+Claude は `dontAsk` で動き、`bin/weekly-auto` の中で許可した道具しか使えない。DB は
+`bin/kabu-psql` で繋ぐ。変数展開やコマンド置換を含むコマンドは許可のルールに当たらないので、
+接続文字列はスクリプトの中で読む。手順を変えて新しいコマンドが要るようになったら、許可の
+一覧に足して `bin/weekly-auto --dry` で通るか確かめること。
+
+自動で書いたあとは、ユーザが読んで質問してくる (手順 8)。動画はつなげない。
+
 
 ### 1. 株価が揃っているか確かめる
 
