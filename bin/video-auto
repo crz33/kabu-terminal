@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# 直近の週次レポートから動画を無人で作り、YouTube に非公開で上げて、IRIS 経由で Telegram に知らせる。
+#
+#   0 7 * * 1 $HOME/kabu-terminal/bin/video-auto 2>&1 | /usr/bin/logger -t kabu-video
+#
+# 月曜 07:00 に回す。土曜 06:00 に bin/weekly-auto が書いたレポートに、土日の質問で書き戻した
+# あとの版から作るため。公開はユーザが YouTube Studio で行う。レポートから動画へのリンクも、
+# 公開を確かめてからなので、ここでは足さない。
+#
+# 止めたい週は ~/.local/state/kabu/video-skip/<レポートの名前> を置く (中身は空でよい)。
+#
+# --dry を付けると、作らずに道具の許可だけを試す (描画、字幕の確認、アップロードの入口)。
+#
+# Claude は dontAsk で動かし、Web を引かせない。台本は Python で、render.py がそのまま実行する。
+# 記事を読んだ Claude に台本を書かせると、記事に仕込まれた指示がコードとして動きうる。入力は
+# ユーザが土日に読んだレポートだけにする。
+#
+# 確認用のページ (claude.ai の Artifact) は更新しない。無人の claude -p には Artifact の道具が
+# 無い (2026-11-17 に試した)。確認は YouTube Studio で足りる。ページに載せたい週は会話で頼む。
+#
+# commit と push はこのスクリプトがやる。Claude に git を許すと、公開リポジトリの kabu-terminal
+# にも push できてしまうため。
+set -uo pipefail
+
+# cron の PATH は最小限なので、ログインシェルの PATH を使う (bin/weekly-auto と同じ)。
+export PATH="$(bash -lc 'printf %s "$PATH"')"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+NOTIFY=/var/tmp/kabu-notify
+TODAY="$(date +%Y%m%d)"
+LOG="$(mktemp -t kabu-video.XXXXXX)"
+
+notify() {  # notify <名前> <本文>
+    local tmp="$NOTIFY/$1.tmp"
+    printf '%s\n' "$2" > "$tmp" && chmod 640 "$tmp" && mv "$tmp" "$NOTIFY/$1.txt"
+}
+
+fail() {
+    echo "$1" >&2
+    notify "video-$TODAY-fail" "週次動画失敗 ($TODAY)
+$1"
+    exit 1
+}
+
+[ -d "$ROOT/data/video" ] || fail "data/ が読めない。SSD が外れていないか確かめてください。"
+
+NAME="$(basename "$(ls "$ROOT"/kessannote/reports/*_weekly-market.md | sort | tail -1)" .md)"
+[ "$(date -d "${NAME:0:8}" +%s)" -ge "$(date -d '7 days ago' +%s)" ] \
+    || fail "今週の週次レポートが無い (最新は $NAME)。土曜の自動実行が失敗していないか確かめてください。"
+
+if [ "${1:-}" != "--dry" ]; then
+    if [ -e "$HOME/.local/state/kabu/video-skip/$NAME" ]; then
+        notify "video-$TODAY" "週次動画 ($NAME) は止める印があったので作らなかった。"
+        exit 0
+    fi
+    [ -f "$ROOT/data/video/$NAME/youtube.json" ] && { echo "$NAME は上げ済み"; exit 0; }
+    [ -z "$(git -C "$ROOT/kessannote" status --porcelain "reports/$NAME.md")" ] \
+        || fail "$NAME に commit していない変更がある。書き戻しの途中なら、済ませてから流し直してください。"
+fi
+
+# 許可のルールに当たる打ち方。試験 (--dry) と本番で同じものを渡す。
+RULES="- コマンドに変数展開 (\$X) やコマンド置換 (\$(...)) を使うと拒否されます。値は直に書いてください
+- render.py、thumbnail.py、youtube.py は kabu-terminal の直下から .claude/skills/video/<名前>.py の形で打ってください
+- Web の検索と記事の取得はできません"
+
+PROMPT="video スキル (週次市況の動画) の手順 1〜7 で、reports/${NAME}.md の動画を作ってください。
+無人の自動実行です。質問できる相手はいません。
+
+- レポートはユーザが土日に読み、質問を書き戻したあとの版です。台本はレポートの本文と表から写すだけにしてください。未確定の調べものはしません
+${RULES}
+- 字幕の割れは、render.py が出す data/video/${NAME}/work/subs*.png を Read で全部見て確かめてください。割れていたら文を直して描き直します
+- チャプターの時刻は data/video/${NAME}/work/chapters.txt にあります
+- 手順 6 (確認用のページ) は飛ばしてください。この実行からはページに触れません
+- youtube.py は upload だけを使ってください
+- commit と push はしないでください。終わったあとにスクリプトがやります
+- 一時ファイルは /tmp/claude-video/ に置いてください
+
+最後の出力は、次の形のプレーンテキストだけにしてください。Telegram にそのまま送ります。
+1 行目: 週次動画 <前週末 M/D>→<当週末 M/D> を非公開で上げた
+2 行目: YouTube のタイトル
+3 行目: 長さ (例: 4 分 41 秒)
+4 行目: YouTube の URL
+5 行目: Studio で確かめて公開に切り替えてください"
+
+if [ "${1:-}" = "--dry" ]; then
+    PROMPT="無人の自動実行の、道具の許可の試験です。台本、レポート、ページの中身は変えないでください。
+次を順に試し、それぞれ通ったか拒否されたかを 1 行ずつ出してください。
+
+${RULES}
+
+1. .claude/skills/video/render.py kessannote/videos/${NAME}.py data/video/${NAME} (読み上げはキャッシュ済みなので課金されません)
+2. data/video/${NAME}/work/subs1.png を Read で見て、1 文目の字幕を答える
+3. .claude/skills/video/thumbnail.py kessannote/videos/${NAME}.py data/video/${NAME}
+4. .claude/skills/video/youtube.py upload ${NAME} (上げ済みなので、二度は上がらないはずです)
+最後の行は「dry 完了」にしてください。"
+fi
+
+ALLOWED=(
+    Read Write Edit Glob Grep Skill
+    "Bash(.claude/skills/video/render.py:*)" "Bash($ROOT/.claude/skills/video/render.py:*)"
+    "Bash(.claude/skills/video/thumbnail.py:*)" "Bash($ROOT/.claude/skills/video/thumbnail.py:*)"
+    "Bash(.claude/skills/video/youtube.py upload:*)" "Bash($ROOT/.claude/skills/video/youtube.py upload:*)"
+    "Bash(ls:*)" "Bash(cat:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(sed -n:*)" "Bash(grep:*)"
+    "Bash(wc:*)" "Bash(mkdir:*)" "Bash(cd:*)" "Bash(date:*)"
+)
+
+mkdir -p /tmp/claude-video
+cd "$ROOT"
+timeout 2h claude -p "$PROMPT" --permission-mode dontAsk --add-dir /mnt/usb/data /tmp/claude-video \
+    --allowedTools "${ALLOWED[@]}" < /dev/null > "$LOG" 2>&1
+RC=$?
+cat "$LOG"
+
+if [ "${1:-}" = "--dry" ]; then
+    notify "video-$TODAY-dry" "週次動画の自動実行の試験 (終了コード $RC)
+$(tail -c 3000 "$LOG")"
+    rm -f "$LOG"
+    exit $RC
+fi
+
+YT="$ROOT/data/video/$NAME/youtube.json"
+if [ $RC -ne 0 ] || [ ! -f "$YT" ]; then
+    fail "終了コード $RC、YouTube $( [ -f "$YT" ] && echo 上げ済み || echo まだ )。
+$(tail -c 2000 "$LOG")"
+fi
+
+# 台本と概要欄は kessannote に。
+cd "$ROOT/kessannote"
+git add "videos/$NAME.py" "videos/$NAME.youtube.md" \
+    && git commit -q -m "${NAME:0:8} の週次動画の台本と概要欄を足す (自動実行)" -m "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>" -- "videos/$NAME.py" "videos/$NAME.youtube.md" \
+    && git push -q origin main \
+    || fail "kessannote の commit か push に失敗した。動画は上がっている。
+$(tail -c 1500 "$LOG")"
+
+notify "video-$TODAY" "$(tail -c 3000 "$LOG")"
+rm -f "$LOG"

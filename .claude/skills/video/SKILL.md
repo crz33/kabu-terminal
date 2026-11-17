@@ -28,7 +28,22 @@ curl -fsSL https://bootstrap.pypa.io/get-pip.py -o <scratchpad>/get-pip.py
 ~/.venvs/video/bin/pip install -q pillow
 ```
 
-## 手順
+## 自動実行
+
+月曜 07:00 に kabu の cron が `bin/video-auto` を流し、直近の週次レポートから手順 1〜5 と 7 を
+無人で回す。土日の質問で書き戻したあとの版から作るため、月曜にしている。結果も失敗も
+`/var/tmp/kabu-notify/` に置き、IRIS がそれを Telegram に流す。ログは `journalctl -t kabu-video`。
+
+- Web は引かせない。台本は render.py がそのまま実行する Python なので、記事を読んだ Claude に
+  書かせない。未確定の調べものは土日の質問で済ませておく
+- 手順 6 (確認用のページ) は飛ぶ。無人の `claude -p` には Artifact の道具が無い。載せたい週は会話で頼む
+- commit と push はスクリプトがやる (kessannote の台本と概要欄だけ)
+- 字幕の割れは render.py が出す `work/subs*.png`、チャプターは `work/chapters.txt` で見る
+- **止めたい週は** `~/.local/state/kabu/video-skip/<レポートの名前>` を置く。ユーザが「今週は動画
+  止めて」と言ったら、これを作る。レポートに commit していない変更があるときも止まる
+- 道具を足したら `bin/video-auto --dry` で通るか確かめる。上げ済みの週で試せば課金も二重の
+  アップロードも起きない
+
 
 ### 1. 台本を書く
 
@@ -81,7 +96,7 @@ cd ~/kabu-terminal
 ### 5. YouTube のタイトルと概要欄を書く
 
 `kessannote/videos/<名前>.youtube.md` に置く。前の週のものを型にする。チャプターの時刻は
-`work/frames.txt` の文ごとの長さをスライドごとに足して出す。概要欄には、レポートへのリンク、
+`work/chapters.txt` にある (render.py が文ごとの長さをスライドごとに足して出す)。概要欄には、レポートへのリンク、
 対象の銘柄数と期間、免責、合成音声であることを必ず入れる。上げるのはユーザがスマホから行う。
 
 ### 6. ページに載せる
@@ -195,5 +210,5 @@ ID は `data/video/<名前>/youtube.json` にある。建てて commit し、pus
 直後で、権限が行き渡っていなかったとみている。弾かれたら、時間を置いて `thumb` を流し直す。
 
 **字幕の改行が数字の途中に入る。** 「マイナ / ス0.26%」「31 / 00億円」のように、1 行約 35 字で
-機械的に折り返す。「す。」だけが次の行に落ちることもある。字幕の帯を縦に並べた 1 枚を作って
+機械的に折り返す。「す。」だけが次の行に落ちることもある。render.py が出す `work/subs*.png` (字幕の帯を縦に並べたもの) で
 全文を見て、割れていたら文を 2 つに割るか詰める。1 本につき 4 文ほど直すことになる。

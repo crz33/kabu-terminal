@@ -358,6 +358,28 @@ def main():
                     "-r", "30", "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart",
                     str(video)], check=True)
     total = sum(dur for _, dur in frames)
+
+    # 概要欄のチャプター。スライドごとの開始時刻を、文ごとの長さを足して出す
+    with open(work / "chapters.txt", "w") as fp:
+        t, i = 0.0, 0
+        for s in mod.SLIDES:
+            fp.write(f"{int(t // 60)}:{int(t % 60):02d} {s.get('head', s.get('title'))}\n")
+            for _ in s["say"]:
+                t += frames[i][1]
+                i += 1
+
+    # 字幕の帯を縦に並べた画像。数字の途中や「す。」で折り返していないかをまとめて見る。
+    # 縦に長すぎると読むときに縮められて字が潰れるので、20 文ずつ subs1.png, subs2.png … に割る
+    bands = [Image.open(png).crop((0, H - 230, W, H)).resize((W // 2, 115)) for png, _ in frames]
+    for old in work.glob("subs*.png"):
+        old.unlink()
+    for k in range(0, len(bands), 20):
+        part = bands[k:k + 20]
+        strip = Image.new("RGB", (W // 2, 115 * len(part)))
+        for i, b in enumerate(part):
+            strip.paste(b, (0, 115 * i))
+        strip.save(work / f"subs{k // 20 + 1}.png")
+
     print(f"{video} {total:.1f}s {len(mod.SLIDES)} slides {n} sentences")
 
 

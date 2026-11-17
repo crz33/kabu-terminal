@@ -100,7 +100,7 @@ ALLOWED=(
 mkdir -p /tmp/claude-weekly
 cd "$ROOT"
 timeout 3h claude -p "$PROMPT" --permission-mode dontAsk --add-dir /mnt/usb/data /tmp/claude-weekly --allowedTools "${ALLOWED[@]}" \
-    > "$LOG" 2>&1
+    < /dev/null > "$LOG" 2>&1
 RC=$?
 cat "$LOG"
 
